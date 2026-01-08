@@ -45,7 +45,7 @@ circuit.measure(qreg_q[2], creg_c[2])
 shots = 10000
 
 provider = AzureQuantumProvider()
-backend = provider.get_backend("quantinuum.sim.h1-1sc")
+backend = provider.get_backend("rigetti.sim.qvm") # Rigetti Simulator
 
 qc_basis = transpile(circuit, backend)
 job = backend.run(qc_basis, shots=shots)
