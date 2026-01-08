@@ -7,7 +7,7 @@ from azure.quantum.qiskit import AzureQuantumProvider
 # Circuito (SIN CAMBIOS)
 # =============================
 qreg_q = QuantumRegister(4, 'q')
-creg_c = ClassicalRegister(4, 'c')
+creg_c = ClassicalRegister(3, 'c')
 circuit = QuantumCircuit(qreg_q, creg_c)
 
 circuit.h(qreg_q[0])
