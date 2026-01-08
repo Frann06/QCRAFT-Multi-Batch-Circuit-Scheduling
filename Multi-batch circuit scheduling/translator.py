@@ -200,6 +200,197 @@ def get_ibm_individual() -> tuple:
     dict_response['code'] = code_array
     return json.dumps(dict_response, indent = 4)
 
+
+@app.route('/code/azure', methods=['POST'])
+def get_azure() -> str:
+    """
+    Translates a list of Quirk URLs into a Qiskit circuit.
+
+    Request Parameters:
+        url (str): The Quirk URL.
+
+    Returns:
+        str: The Qiskit circuit in str format.
+    """
+
+    circuitos = []
+    for i in request.json.keys():
+        circuitos.append(ast.literal_eval(unquote(request.json[i]).split('circuit=')[1]))
+
+    desplazamiento = []
+    for y in circuitos:
+        desplazamiento.append(max([len(i) for i in y['cols']]))
+
+    code_array = []
+
+    code_array.append('from math import pi')
+    code_array.append('from qiskit.circuit.library import MCMT, YGate, XGate, ZGate')
+    code_array.append('from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit')
+    code_array.append('qreg_q = QuantumRegister('+str(sum(desplazamiento))+', \'q\')')
+    code_array.append('creg_c = ClassicalRegister('+str(sum(desplazamiento))+', \'c\')')
+    code_array.append('circuit = QuantumCircuit(qreg_q, creg_c)')
+
+    for index, circuito in enumerate(circuitos):
+        despl = sum(desplazamiento[:index])
+        for j in range(len(circuito['cols'])):
+            x = circuito['cols'][j]
+            if 'Swap' in x:
+                # Handle swap gates
+                swap_indices = [k for k, g in enumerate(x) if g == 'Swap']
+                if len(swap_indices) == 2:
+                    code_array.append(f'circuit.swap(qreg_q[{swap_indices[0]+despl}], qreg_q[{swap_indices[1]+despl}])')
+            elif '•' in x:
+                # Handle multi-controlled gates
+                control_indices = [k for k, g in enumerate(x) if g == '•']
+                num_controls = len(control_indices)
+                if 'X' in x: #append a lock
+                    target_index = x.index('X')
+                    code_array.append(f'mc_x_gate = MCMT(XGate(), {num_controls}, 1)')
+                    code_array.append(f'circuit.append(mc_x_gate, [{", ".join([f"qreg_q[{i+despl}]" for i in control_indices])}, qreg_q[{target_index+despl}]])')
+                elif 'Z' in x:
+                    target_index = x.index('Z')
+                    code_array.append(f'mc_z_gate = MCMT(ZGate(), {num_controls}, 1)')
+                    code_array.append(f'circuit.append(mc_z_gate, [{", ".join([f"qreg_q[{i+despl}]" for i in control_indices])}, qreg_q[{target_index+despl}]])')
+                elif 'Y' in x:
+                    target_index = x.index('Y')
+                    code_array.append(f'mc_y_gate = MCMT(YGate(), {num_controls}, 1)')
+                    code_array.append(f'circuit.append(mc_y_gate, [{", ".join([f"qreg_q[{i+despl}]" for i in control_indices])}, qreg_q[{target_index+despl}]])')
+            else:
+                for i in range(len(x)):
+                    gate = x[i]
+                    if gate == 'Measure':
+                        code_array.append(f'circuit.measure(qreg_q[{i+despl}], creg_c[{i+despl}])')
+                    elif gate == 'H':
+                        code_array.append(f'circuit.h(qreg_q[{i+despl}])')
+                    elif gate == 'Z':
+                        code_array.append(f'circuit.z(qreg_q[{i+despl}])')
+                    elif gate == 'X':
+                        code_array.append(f'circuit.x(qreg_q[{i+despl}])')
+                    elif gate == 'Y':
+                        code_array.append(f'circuit.y(qreg_q[{i+despl}])')                        
+                    elif gate == 'X^½':
+                        code_array.append(f'circuit.rx(np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'X^-½':
+                        code_array.append(f'circuit.rx(-np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'X^¼':
+                        code_array.append(f'circuit.rx(np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'X^-¼':
+                        code_array.append(f'circuit.rx(-np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'Y^½':
+                        code_array.append(f'circuit.ry(np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'Y^-½':
+                        code_array.append(f'circuit.ry(-np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'Y^¼':
+                        code_array.append(f'circuit.ry(np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'Y^-¼':
+                        code_array.append(f'circuit.ry(-np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'Z^½':
+                        code_array.append(f'circuit.s(qreg_q[{i+despl}])')
+                    elif gate == 'Z^-½':
+                        code_array.append(f'circuit.sdg(qreg_q[{i+despl}])')
+                    elif gate == 'Z^¼':
+                        code_array.append(f'circuit.t(qreg_q[{i+despl}])')
+                    elif gate == 'Z^-¼':
+                        code_array.append(f'circuit.tdg(qreg_q[{i+despl}])')
+
+    code_array.append('return circuit')
+
+    dict_response = {'code': code_array}
+    return json.dumps(dict_response, indent=4)
+
+@app.route('/code/ibm/individual', methods=['POST'])
+def get_azure_individual() -> tuple:
+    """
+    Translates a single Quirk URL into a Qiskit circuit.
+
+    Request Parameters:
+        url (str): The Quirk URL.
+        d (int): The offset to add to the qubits.
+
+    Returns:
+        tuple: The Qiskit circuit in str format.
+    
+    """
+    data = request.get_json()  # Get the JSON data sent with the POST request
+    url = data.get('url')  # Get the 'url' parameter
+    d = data.get('d') 
+    circuitos = []
+    if url:
+        circuit = ast.literal_eval(unquote(url).split('circuit=')[1])
+        circuitos.append(circuit)
+
+    code_array = []
+
+    desplazamiento = d
+
+    for index, circuito in enumerate(circuitos):
+        despl = desplazamiento
+        for j in range(len(circuito['cols'])):
+            x = circuito['cols'][j]
+            if 'Swap' in x:
+                # Handle swap gates
+                swap_indices = [k for k, g in enumerate(x) if g == 'Swap']
+                if len(swap_indices) == 2:
+                    code_array.append(f'circuit.swap(qreg_q[{swap_indices[0]+despl}], qreg_q[{swap_indices[1]+despl}])')
+            elif '•' in x:
+                # Handle multi-controlled gates
+                control_indices = [k for k, g in enumerate(x) if g == '•']
+                num_controls = len(control_indices)
+                if 'X' in x:
+                    target_index = x.index('X')
+                    code_array.append(f'mc_x_gate = MCMT(XGate(), {num_controls}, 1)')
+                    code_array.append(f'circuit.append(mc_x_gate, [{", ".join([f"qreg_q[{i+despl}]" for i in control_indices])}, qreg_q[{target_index+despl}]])')
+                elif 'Z' in x:
+                    target_index = x.index('Z')
+                    code_array.append(f'mc_z_gate = MCMT(ZGate(), {num_controls}, 1)')
+                    code_array.append(f'circuit.append(mc_z_gate, [{", ".join([f"qreg_q[{i+despl}]" for i in control_indices])}, qreg_q[{target_index+despl}]])')
+                elif 'Y' in x:
+                    target_index = x.index('Y')
+                    code_array.append(f'mc_y_gate = MCMT(YGate(), {num_controls}, 1)')
+                    code_array.append(f'circuit.append(mc_y_gate, [{", ".join([f"qreg_q[{i+despl}]" for i in control_indices])}, qreg_q[{target_index+despl}]])')
+            else:
+                for i in range(len(x)):
+                    gate = x[i]
+                    if gate == 'Measure':
+                        code_array.append(f'circuit.measure(qreg_q[{i+despl}], creg_c[{i+despl}])')
+                    elif gate == 'H':
+                        code_array.append(f'circuit.h(qreg_q[{i+despl}])')
+                    elif gate == 'Z':
+                        code_array.append(f'circuit.z(qreg_q[{i+despl}])')
+                    elif gate == 'X':
+                        code_array.append(f'circuit.x(qreg_q[{i+despl}])')
+                    elif gate == 'Y':
+                        code_array.append(f'circuit.y(qreg_q[{i+despl}])') 
+                    elif gate == 'X^½':
+                        code_array.append(f'circuit.rx(np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'X^-½':
+                        code_array.append(f'circuit.rx(-np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'X^¼':
+                        code_array.append(f'circuit.rx(np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'X^-¼':
+                        code_array.append(f'circuit.rx(-np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'Y^½':
+                        code_array.append(f'circuit.ry(np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'Y^-½':
+                        code_array.append(f'circuit.ry(-np.pi/2, qreg_q[{i+despl}])')
+                    elif gate == 'Y^¼':
+                        code_array.append(f'circuit.ry(np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'Y^-¼':
+                        code_array.append(f'circuit.ry(-np.pi/4, qreg_q[{i+despl}])')
+                    elif gate == 'Z^½':
+                        code_array.append(f'circuit.s(qreg_q[{i+despl}])')
+                    elif gate == 'Z^-½':
+                        code_array.append(f'circuit.sdg(qreg_q[{i+despl}])')
+                    elif gate == 'Z^¼':
+                        code_array.append(f'circuit.t(qreg_q[{i+despl}])')
+                    elif gate == 'Z^-¼':
+                        code_array.append(f'circuit.tdg(qreg_q[{i+despl}])')
+
+    dict_response = {}
+    dict_response['code'] = code_array
+    return json.dumps(dict_response, indent = 4)
+
+
 @app.route('/code/aws', methods=['POST'])
 def get_aws() -> tuple:
     """
@@ -408,6 +599,8 @@ def getFreePort() -> int:
     puertos=[k for k, v in ports.items() if v == 0]
     ports[puertos[0]]=1
     return puertos[0]
+
+
 
 
 if __name__ == '__main__':

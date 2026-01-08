@@ -133,8 +133,8 @@ async def main():
         for url_value in random_urls:
             time_policy_data = {
                 "url": url_value,
-                "shots": 10000,
-                "provider": ['ibm'],
+                "shots": 10,
+                "provider": ['azure'],
                 "policy": "multibatch", #time o batch o multibatch
                 "criterio": 0
             }

@@ -19,6 +19,9 @@ from pymongo import MongoClient
 from bson.json_util import dumps
 from dotenv import load_dotenv
 
+
+from executeCircuitAzure import executeCircuitAzure
+
 class Scheduler:
     """
     Class to manage the petitions of quantum circuit scheduling.
@@ -66,6 +69,8 @@ class Scheduler:
         #self.max_qubits = 127
 
         self.executeCircuitIBM = self.scheduler_policies.get_ibm()
+        #AZURE:
+        self.executeCircuitAzure = self.scheduler_policies.get_azure()
 
         self.transpilation_machine = self.scheduler_policies.get_ibm_machine()
         self.service = self.executeCircuitIBM.load_account_ibm()
@@ -115,6 +120,8 @@ class Scheduler:
         provider = fdata[id][3]
         if provider == 'ibm':
             counts = self.executeCircuitIBM.retrieve_result_ibm(id) 
+        elif provider == 'azure':
+            counts = self.executeCircuitAzure.retrieve_result_azure(id)
         elif provider == 'aws':
             counts = retrieve_result_aws(id)
         circuit_names = fdata[id][4]
@@ -309,6 +316,11 @@ class Scheduler:
                     if shots is None:
                         shots = ibmShots
                     providers['ibm'] = shots
+                elif provider_name == 'azure':
+                    num_qubits = max(len(col) for col in circuit['cols'])
+                    if shots is None:
+                        shots = ibmShots
+                    providers['azure'] = shots
                 elif provider_name == 'aws': #In AWS Measure instruction does not exist, if the Measure instruction is in the url, that number of measure qubits are removed
                     num_qubits = max(len(col) for col in circuit['cols'] if 'Measure' not in col)
                     if shots is None:
@@ -332,6 +344,9 @@ class Scheduler:
                         if provider == 'ibm':
                             circ = self.executeCircuitIBM.code_to_circuit_ibm(code) #check this method because if a lot of circuits enter at the same time, it fails
                             maxDepth = self.executeCircuitIBM.get_transpiled_circuit_depth_ibm(circ, self.transpilation_backend)
+                        elif provider == 'azure':
+                            circ = self.executeCircuitAzure.code_to_circuit_azure(code)
+                            maxDepth = self.executeCircuitAzure.get_transpiled_circuit_depth_azure(circ)
                         elif provider == 'aws':
                             #TODO
                             maxDepth = max(sum(1 for j in circuit['cols'] if i < len(j) and j[i] not in {1, 'Measure'}) for i in range(num_qubits))
