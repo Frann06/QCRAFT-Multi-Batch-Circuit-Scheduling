@@ -1,0 +1,89 @@
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
+import numpy as np
+
+from azure.quantum.qiskit import AzureQuantumProvider
+
+# =============================
+# Circuito (SIN CAMBIOS)
+# =============================
+qreg = QuantumRegister(5, 'q')
+creg_meas = ClassicalRegister(5, 'meas')
+circuit = QuantumCircuit(qreg, creg_meas)
+
+circuit.h(qreg[3])
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[2], qreg[4], qreg[0])
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[3], qreg[2], qreg[1])
+circuit.x(qreg[1])
+circuit.cx(qreg[3], qreg[2])
+circuit.x(qreg[2])
+circuit.x(qreg[3])
+
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[2], qreg[4], qreg[0])
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[3], qreg[2], qreg[1])
+circuit.x(qreg[1])
+circuit.cx(qreg[3], qreg[2])
+circuit.x(qreg[2])
+
+circuit.u(np.pi / 2, -np.pi, -np.pi, qreg[3])
+
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[2], qreg[4], qreg[0])
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[3], qreg[2], qreg[1])
+circuit.x(qreg[1])
+circuit.cx(qreg[3], qreg[2])
+circuit.x(qreg[2])
+circuit.x(qreg[3])
+
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[2], qreg[4], qreg[0])
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[3], qreg[2], qreg[1])
+circuit.x(qreg[1])
+circuit.cx(qreg[3], qreg[2])
+circuit.x(qreg[2])
+
+circuit.u(np.pi / 2, -np.pi, -np.pi, qreg[3])
+
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[2], qreg[4], qreg[0])
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[3], qreg[2], qreg[1])
+circuit.x(qreg[1])
+circuit.cx(qreg[3], qreg[2])
+circuit.x(qreg[2])
+circuit.x(qreg[3])
+
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[2], qreg[4], qreg[0])
+circuit.rccx(qreg[3], qreg[1], qreg[4])
+circuit.ccx(qreg[3], qreg[2], qreg[1])
+circuit.x(qreg[1])
+circuit.cx(qreg[3], qreg[2])
+circuit.x(qreg[2])
+
+circuit.barrier(qreg[0], qreg[1], qreg[2], qreg[3], qreg[4])
+
+circuit.measure(qreg[0], creg_meas[0])
+circuit.measure(qreg[1], creg_meas[1])
+circuit.measure(qreg[2], creg_meas[2])
+circuit.measure(qreg[3], creg_meas[3])
+circuit.measure(qreg[4], creg_meas[4])
+
+# =============================
+# Ejecución en Azure (estilo IBM)
+# =============================
+shots = 100
+
+provider = AzureQuantumProvider()
+backend = provider.get_backend("rigetti.sim.qvm")  # simulador estable
+
+qc_basis = transpile(circuit, backend)
+job = backend.run(qc_basis, shots=shots)
+job_result = job.result()
+
+print(job_result.get_counts())
