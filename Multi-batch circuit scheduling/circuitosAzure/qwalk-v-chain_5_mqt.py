@@ -77,7 +77,7 @@ circuit.measure(qreg[4], creg_meas[4])
 # =============================
 # Ejecución en Azure (estilo IBM)
 # =============================
-shots = 100
+shots = 20
 
 provider = AzureQuantumProvider()
 backend = provider.get_backend("rigetti.sim.qvm")  # simulador estable
