@@ -13,7 +13,7 @@ circuit = QuantumCircuit(qreg_q, creg_c)
 circuit.h(qreg_q[0])
 circuit.h(qreg_q[1])
 circuit.h(qreg_q[2])
-circuit.x(qreg_q[3])
+#circuit.x(qreg_q[3])
 
 circuit.cp(np.pi / 4, qreg_q[0], qreg_q[3])
 circuit.cp(np.pi / 4, qreg_q[1], qreg_q[3])
